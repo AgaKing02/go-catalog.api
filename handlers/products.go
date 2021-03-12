@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"go-microservice/data"
+	"go-microservice/db"
 	"log"
 	"net/http"
 	"strconv"
@@ -29,17 +31,25 @@ func NewProduct(l *log.Logger) *Products {
 func (p *Products) GetProducts(rw http.ResponseWriter, r *http.Request) {
 	p.l.Println("Handle GET Products")
 
-	lp := data.GetProducts()
-	err := lp.ToJSON(rw)
+	lp, err := db.Get()
+	if err != nil {
+		http.Error(rw, "Unable to read products", http.StatusInternalServerError)
+	}
+	marshal, err := json.Marshal(lp)
 	if err != nil {
 		http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
 	}
+	rw.Write(marshal)
 }
 
 func (p *Products) AddProduct(rw http.ResponseWriter, r *http.Request) {
 	p.l.Println("Handle POST Products")
 	prod := r.Context().Value(KeyProduct{}).(data.Product)
-	data.AddProduct(&prod)
+	err := db.Insert(&prod)
+	if err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+	}
+	rw.Write([]byte("The product added"))
 }
 
 func (p *Products) UpdateProduct(rw http.ResponseWriter, r *http.Request) {
@@ -79,12 +89,13 @@ func (p *Products) DeleteProduct(rw http.ResponseWriter, r *http.Request) {
 	//if err != nil {
 	//	http.Error(rw, "Unable to unmarshal json", http.StatusBadRequest)
 	//}
-
-	err = data.DeleteProduct(id)
-	if err == data.ErrProductNotFound {
+	err = db.Delete(id)
+	if err != nil || err == data.ErrProductNotFound {
 		http.Error(rw, "Product Not Found", http.StatusNotFound)
 		return
 	}
+	rw.Write([]byte("The product removed"))
+
 }
 func (p *Products) GetProductById(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -122,8 +133,8 @@ func (p *Products) GetProductByName(rw http.ResponseWriter, r *http.Request) {
 	}
 	p.l.Println("Handle GetByName Product", name)
 
-	productByName, err := data.GetProductByName(name)
-	if err != nil || err == data.ErrProductNotFound {
+	productByName, err := db.FindByName(name)
+	if err == data.ErrProductNotFound {
 		http.Error(rw, "Product Not Found", http.StatusNotFound)
 		return
 	}

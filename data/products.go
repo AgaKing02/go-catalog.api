@@ -11,8 +11,8 @@ import (
 
 // Product defines the structure for an API product
 type Product struct {
-	ID          int     `json:"id"`
-	Name        string  `json:"name" validate:"required"`
+	ID   int    `json:"id"`
+	Name string `json:"name" validate:"required"`
 	//Category    string  `json:"category" validate:"required"`
 	Description string  `json:"description"`
 	Price       float32 `json:"price" validate:"gt=0"`
@@ -35,8 +35,12 @@ func (p *Products) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)
 	return e.Encode(p)
 }
+func ToJSON(arr *[]Product, w io.Writer) error {
+	e := json.NewEncoder(w)
+	return e.Encode(arr)
+}
 func (p *Product) ToJSON(w io.Writer) error {
-	e:=json.NewEncoder(w)
+	e := json.NewEncoder(w)
 	return e.Encode(p)
 }
 
@@ -96,21 +100,21 @@ func findProduct(id int) (*Product, int, error) {
 	}
 	return nil, -1, ErrProductNotFound
 }
-func GetProductById(id int)(*Product,error)  {
+func GetProductById(id int) (*Product, error) {
 	product, _, err := findProduct(id)
-	if err==nil{
-		return product,nil
+	if err == nil {
+		return product, nil
 	}
-	return nil, ErrProductNotFound;
+	return nil, ErrProductNotFound
 }
 
-func GetProductByName(name string)(*Product,error)  {
-	for  _,p := range productList {
+func GetProductByName(name string) (*Product, error) {
+	for _, p := range productList {
 		if p.Name == name {
-			return p,nil
+			return p, nil
 		}
 	}
-	return nil,ErrProductNotFound
+	return nil, ErrProductNotFound
 }
 
 func getNextID() int {

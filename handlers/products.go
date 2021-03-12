@@ -68,7 +68,7 @@ func (p *Products) UpdateProduct(rw http.ResponseWriter, r *http.Request) {
 	}
 	p.l.Printf("Prod: %#v", prod)
 
-	err = data.UpdateProduct(id, &prod)
+	err = db.Update(&prod)
 	if err == data.ErrProductNotFound {
 		http.Error(rw, "Product Not Found", http.StatusNotFound)
 		return
@@ -105,22 +105,19 @@ func (p *Products) GetProductById(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.l.Println("Handle GetByID Product", id)
-	//prod :=r.Context().Value(KeyProduct{}).(data.Product)
-	//
-	//err = prod.FromJSON(r.Body)
-	//if err != nil {
-	//	http.Error(rw, "Unable to unmarshal json", http.StatusBadRequest)
-	//}
 
-	productById, err := data.GetProductById(id)
-	if err != nil || err == data.ErrProductNotFound {
+	productById, err := db.FindById(id)
+
+	if productById != nil {
+		err = productById.ToJSON(rw)
+		if err != nil {
+			http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
+		}
+	} else {
 		http.Error(rw, "Product Not Found", http.StatusNotFound)
 		return
 	}
-	err = productById.ToJSON(rw)
-	if err != nil {
-		http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
-	}
+
 }
 
 func (p *Products) GetProductByName(rw http.ResponseWriter, r *http.Request) {
@@ -138,9 +135,13 @@ func (p *Products) GetProductByName(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Product Not Found", http.StatusNotFound)
 		return
 	}
-	err = productByName.ToJSON(rw)
-	if err != nil {
-		http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
+	if productByName == nil {
+		http.Error(rw, "The product does not exist", http.StatusNotFound)
+	} else {
+		err = productByName.ToJSON(rw)
+		if err != nil {
+			http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
+		}
 	}
 
 }

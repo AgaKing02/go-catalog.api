@@ -69,14 +69,19 @@ func FindByCategory(category string) (*[]data.Product, error) {
 }
 
 func Get() (*[]data.Product, error) {
-	query := bson.M{}
 	productCollection := Database.Context.DB("productDb").C("products")
-	productArray := &[]data.Product{}
-	err := productCollection.Find(query).All(&productArray)
-	if err != nil {
-		return nil, err
+	productArray := []data.Product{}
+
+	item := &data.Product{}
+
+	find := productCollection.Find(bson.M{})
+
+	items := find.Iter()
+	for items.Next(&item) {
+		productArray = append(productArray, *item)
 	}
-	return productArray, nil
+
+	return &productArray, nil
 }
 
 func Update(p *data.Product) error {
